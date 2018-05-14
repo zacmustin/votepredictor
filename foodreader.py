@@ -17,7 +17,7 @@ with open('CountyVote.csv','r') as votes: #county and voter breakdown
 with open('CountyRest.csv','r') as rests: #county and fastfood breakdown
 	g = csv.reader(rests, delimiter=',')
 	for row_num in g: #go through all rows in rests
-		rester.append(row_num[2] + "," + row_num[1] + "," + row_num[4]) #county,state,# of fastfood restaurants (2014)
+		rester.append(row_num[2] + "," + row_num[1] + "," + row_num[4] + ',' + row_num[7]) #county,state,# of fastfood restaurants (2014)
 
 for voterow in vote:
 	for restrow in rester:
