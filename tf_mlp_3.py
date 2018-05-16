@@ -61,26 +61,22 @@ pY = tf.placeholder("float", [None, 2])
 def perceptron(x, weights, biases):
     # Hidden layer with ReLU activation
     layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
-    # Hidden fully connected layer with 256 neurons
-    layer_2 = tf.add(tf.matmul(layer_1, weights['h2']), biases['b2'])
+    layer_1 = tf.nn.relu(layer_1)
     # Output layer with linear activation
-    out_layer = tf.matmul(layer_2, weights['out']) + biases['out']
+    out_layer = tf.matmul(layer_1, weights['out']) + biases['out']
     #print(out_layer)
     return out_layer
 
 # Store layers weight &amp; bias
 weights = {
 'h1': tf.Variable(tf.random_normal([INPUT_SIZE, HL_SIZE])),
-'h2': tf.Variable(tf.random_normal([HL_SIZE, HL_SIZE])),
 'out': tf.Variable(tf.random_normal([HL_SIZE, 2]))
 }
 biases = {
 'b1': tf.Variable(tf.random_normal([HL_SIZE])),
-'b2': tf.Variable(tf.random_normal([HL_SIZE])),
 'out': tf.Variable(tf.random_normal([2]))
 }
 
-print(tf.random_normal([INPUT_SIZE, HL_SIZE]))
 # Construct model
 logits = perceptron(pX, weights, biases)
 
@@ -118,28 +114,15 @@ with tf.Session() as sess:
         avg_cost += c
         # Display logs per epoch step
         if epoch % 1000 == 0:
-            print("Epoch:", '%04d' % (epoch), "cost={:.9f}".format(avg_cost))
-    print("Optimization Finished!")
+            # Test model
+            pred = tf.nn.softmax(logits)  # Apply softmax to logits
+            correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(pY, 1))
+            # Calculate accuracy
+            accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+            print("Epoch:", '%04d' % (epoch), "Cost={:.9f}".format(avg_cost), "Accuracy={:.2%}".format(accuracy.eval({pX: X, pY: Y})))
 
-"""
-    #round up guess to either 0 or 1
-    for i in range(len(l2)):
-        if l2[i] < 0.5: 
-            l2[i] = 0
-        else:
-            l2[i] = 1
 
-        if l2[i] == Y[i]:
-            correct_guesses+=1
-        
-    if (j % 100) == 0:
-        #print(weights)
-        print("Iteration " + str(j) + " - Error:" + str(np.mean(np.abs(l2_error))) + " Accuracy: " + str(correct_guesses/2600))
-        with open('synapses0.txt', 'w') as weightsfile:
-            json.dump(syn0.tolist(), weightsfile)
-        with open('synapses1.txt', 'w') as weightsfile:
-            json.dump(syn1.tolist(), weightsfile)
-"""
+
 #NEXT STEPS
     # DO CSV STUFF WITH PANDAS
     # LOOK AT STATE?

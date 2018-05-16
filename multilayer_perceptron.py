@@ -27,7 +27,7 @@ mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 import tensorflow as tf
 
 # Parameters
-learning_rate = 0.001
+learning_rate = 1e-3
 training_epochs = 15
 batch_size = 100
 display_step = 1
