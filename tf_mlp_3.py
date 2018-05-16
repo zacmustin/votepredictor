@@ -13,7 +13,7 @@ import tensorflow as tf
 
 LEARNING_RATE = 0.001
 HL_SIZE = 100
-INPUT_SIZE = 2
+INPUT_SIZE = 3
 
 def load_data(filepath):
     with open(filepath,'r') as csvfile:
@@ -21,8 +21,11 @@ def load_data(filepath):
         state = []
         ffr = []
         ffrpc = []
+        state_dict = {}
+        state = []
         output_list = []
         counter = 0
+        state_counter = 0
         for rows in csvfile:
             if counter < 2600:
                 row_data = rows.split(',')
@@ -30,18 +33,25 @@ def load_data(filepath):
                 data.append(row_data)
                 ffr.append(float(data[counter][2])) # ffrpc = FFRs
                 ffrpc.append(float(data[counter][3])) # ffrpc = FFRs
+
+                #Checks if state has been mapped to dict & maps if it hasn't
+                if data[counter][1] not in state_dict:
+                    state_dict.update({data[counter][1] : state_counter})
+                    state_counter+=1
+                state.append(float(state_dict[data[counter][1]]))
+
                 output_list.append(data[counter][4]) #output_list = D/R
                 counter+=1
-        return array(ffr),array(ffrpc),array(output_list) 
+        return array(ffr),array(ffrpc),array(state),array(output_list) 
 
 # input dataset
-ffr,ffrpc,Y = load_data('CountyFast.csv')
+ffr,ffrpc,states,Y = load_data('CountyFast.csv')
 #put in ffr per capita AND ffr
 
 # CONVERSION OF INPUTS
 new_X = []
-for ffrx,ffrpcx in zip(ffr,ffrpc):
-    new_X.append([np.float(ffrx),np.float(ffrpcx)])
+for ffrx,ffrpcx,statesx in zip(ffr,ffrpc,states):
+    new_X.append([np.float(ffrx),np.float(ffrpcx),(statesx)])
 X = np.array(new_X)
 
 # CONVERSION OF OUTPUTs
@@ -119,7 +129,7 @@ with tf.Session() as sess:
             correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(pY, 1))
             # Calculate accuracy
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
-            print("Epoch:", '%04d' % (epoch), "Cost={:.9f}".format(avg_cost), "Accuracy={:.2%}".format(accuracy.eval({pX: X, pY: Y})))
+            print("Epoch:", '%04d' % (epoch), "Cost={:.5f}".format(avg_cost), "Accuracy={:.2%}".format(accuracy.eval({pX: X, pY: Y})))
 
 
 
