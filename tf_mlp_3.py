@@ -1,6 +1,6 @@
 """
-Author: Aymeric Damien
-Project: https://github.com/aymericdamien/TensorFlow-Examples/
+Code adapted from Aymeric Damien's mnist digit recognition example (https://github.com/aymericdamien/TensorFlow-Examples/)
+Also uses Augustinus Kristadi's Minibatch Gradient Descent for Neural Networks (https://wiseodd.github.io/techblog/2016/06/21/nn-sgd/)
 """
 
 import numpy as np
@@ -12,13 +12,15 @@ import tensorflow as tf
 
 
 LEARNING_RATE = 0.001
+BATCH_SIZE = 260 
+COUNTIES = 2600
+NUM_BATCH = COUNTIES/BATCH_SIZE
 HL_SIZE = 100
 INPUT_SIZE = 3
 
 def load_data(filepath):
     with open(filepath,'r') as csvfile:
         data = []
-        state = []
         ffr = []
         ffrpc = []
         state_dict = {}
@@ -27,7 +29,7 @@ def load_data(filepath):
         counter = 0
         state_counter = 0
         for rows in csvfile:
-            if counter < 2600:
+            if counter < COUNTIES:
                 row_data = rows.split(',')
                 row_data[4] = row_data[4][:1] #removes /n at end 
                 data.append(row_data)
@@ -52,7 +54,8 @@ ffr,ffrpc,states,Y = load_data('CountyFast.csv')
 new_X = []
 for ffrx,ffrpcx,statesx in zip(ffr,ffrpc,states):
     new_X.append([np.float(ffrx),np.float(ffrpcx),(statesx)])
-X = np.array(new_X)
+X = np.array(np.reshape(new_X,(-1,1)))
+print(X.shape)
 
 # CONVERSION OF OUTPUTs
 new_Y = []
@@ -74,7 +77,6 @@ def perceptron(x, weights, biases):
     layer_1 = tf.nn.relu(layer_1)
     # Output layer with linear activation
     out_layer = tf.matmul(layer_1, weights['out']) + biases['out']
-    #print(out_layer)
     return out_layer
 
 # Store layers weight &amp; bias
@@ -116,14 +118,15 @@ with tf.Session() as sess:
     # Training cycle
     for epoch in range(60000):
         avg_cost = 0.
-        # Run optimization op (backprop) and cost op (to get loss value)
-        _, c = sess.run([train_op, loss_op], feed_dict={pX: X, pY: Y})
-        #print(train_op)
-        #print(weights['h1'][0])
-        # Compute average loss
-        avg_cost += c
+        for i in range(0,COUNTIES,BATCH_SIZE): #Runs through 0-COUNTIES with BATCH_SIZE step
+            batch_x = X[i:i + BATCH_SIZE]
+            batch_Y = Y[i:i + BATCH_SIZE]
+            # Run optimization op (backprop) and cost op (to get loss value)
+            _, c = sess.run([train_op, loss_op], feed_dict={pX: X, pY: Y})
+            # Compute average loss
+            avg_cost += c/BATCH_SIZE
         # Display logs per epoch step
-        if epoch % 1000 == 0:
+        if epoch % 10 == 0:
             # Test model
             pred = tf.nn.softmax(logits)  # Apply softmax to logits
             correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(pY, 1))
@@ -131,14 +134,8 @@ with tf.Session() as sess:
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
             print("Epoch:", '%04d' % (epoch), "Cost={:.5f}".format(avg_cost), "Accuracy={:.2%}".format(accuracy.eval({pX: X, pY: Y})))
 
-
-
 #NEXT STEPS
     # DO CSV STUFF WITH PANDAS
-    # LOOK AT STATE?
     # BENCHMARK WITH GUESSING SOLELY BASED ON STATE
-    # ADD BATCHES
     # TRY WITH TESTING ERROR
-    # PLAY AROUND WITH LEARNING RATE
     # GRAPH ERROR OVER TIME
-    # ADD MORE DATA
