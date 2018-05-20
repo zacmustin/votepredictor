@@ -9,6 +9,7 @@ import sys
 from pprint import pprint
 import json
 import tensorflow as tf
+from random import shuffle
 
 
 LEARNING_RATE = 0.001
@@ -29,6 +30,7 @@ def load_data(filepath):
 		for rows in csvfile:
 			if counter < COUNTIES:
 				row_data = rows.split(',')
+				row_data[4] = row_data[4][:1] #removes /n at end 
 				data.append(row_data)
 				#Checks if state has been mapped to dict & maps if it hasn't
 				if data[counter][1] not in state_dict:
@@ -46,10 +48,8 @@ states,Y = load_data('CountyFast.csv')
 # CONVERSION OF INPUTS
 new_X = []
 for statesx in states:
-	new_X.append(np.float(statesx))
-X = np.array(np.reshape(new_X,(-1,len(new_X))))
-X = X.T
-print(X.shape)
+	new_X.append([np.float(statesx)])
+X = np.array(new_X)
 
 # CONVERSION OF OUTPUTs
 new_Y = []
@@ -112,9 +112,11 @@ with tf.Session() as sess:
 	# Training cycle
 	for epoch in range(60000):
 		avg_cost = 0.
+		shuffler = list(range(COUNTIES))
 		for i in range(0,COUNTIES,BATCH_SIZE): #Runs through 0-COUNTIES with BATCH_SIZE step
-			batch_x = X[i:i + BATCH_SIZE]
-			batch_Y = Y[i:i + BATCH_SIZE]
+			shuffle(shuffler)
+			batch_x = X[shuffler[i:i + BATCH_SIZE]]
+			batch_Y = Y[shuffler[i:i + BATCH_SIZE]]
 			# Run optimization op (backprop) and cost op (to get loss value)
 			_, c = sess.run([train_op, loss_op], feed_dict={pX: X, pY: Y})
 			# Compute average loss
@@ -124,8 +126,9 @@ with tf.Session() as sess:
 			# Test model
 			pred = tf.nn.softmax(logits)  # Apply softmax to logits
 			correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(pY, 1))
+			
 			# Calculate accuracy
-			accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+			accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float")) #cast returns percentage of trues/falses
 			print("Epoch:", '%04d' % (epoch), "Cost={:.9f}".format(avg_cost), "Accuracy={:.2%}".format(accuracy.eval({pX: X, pY: Y})))
 
 #NEXT STEPS

@@ -9,7 +9,7 @@ import sys
 from pprint import pprint
 import json
 import tensorflow as tf
-
+from random import shuffle
 
 LEARNING_RATE = 0.001
 BATCH_SIZE = 260 
@@ -18,21 +18,29 @@ NUM_BATCH = COUNTIES/BATCH_SIZE
 HL_SIZE = 100
 INPUT_SIZE = 3
 
-def load_data(filepath):
+def load_data	(filepath):
     with open(filepath,'r') as csvfile:
         data = []
         ffr = []
         ffrpc = []
-        state_dict = {}
         state = []
         output_list = []
+        state_dict = {}
+
+        T_ffr = []
+        T_ffrpc = []
+        T_state = []
+        T_output_list = []
+
         counter = 0
         state_counter = 0
         for rows in csvfile:
+            row_data = rows.split(',')
+            row_data[4] = row_data[4][:1] #removes /n at end 
+            data.append(row_data)
+
+            #loads in training data
             if counter < COUNTIES:
-                row_data = rows.split(',')
-                row_data[4] = row_data[4][:1] #removes /n at end 
-                data.append(row_data)
                 ffr.append(float(data[counter][2])) # ffrpc = FFRs
                 ffrpc.append(float(data[counter][3])) # ffrpc = FFRs
 
@@ -44,18 +52,34 @@ def load_data(filepath):
 
                 output_list.append(data[counter][4]) #output_list = D/R
                 counter+=1
-        return array(ffr),array(ffrpc),array(state),array(output_list) 
+            #loads in testing data
+            else:
+                T_ffr.append(float(data[counter][2])) # ffrpc = FFRs
+                T_ffrpc.append(float(data[counter][3])) # ffrpc = FFRs
+                #Checks if state has been mapped to dict & maps if it hasn't
+                if data[counter][1] not in state_dict:
+                    state_dict.update({data[counter][1] : state_counter})
+                    state_counter+=1
+                T_state.append(float(state_dict[data[counter][1]]))
+
+                T_output_list.append(data[counter][4]) #output_list = D/R
+                counter+=1
+                print(counter)
+        return array(ffr),array(ffrpc),array(state),array(output_list), array(T_ffr),array(T_ffrpc),array(T_state),array(T_output_list) 
+
+###########################################################
+#################Load in Training Data#####################
+###########################################################
 
 # input dataset
-ffr,ffrpc,states,Y = load_data('CountyFast.csv')
+ffr,ffrpc,states,Y, T_ffr,T_ffrpc,T_states,T_Y = load_data	('CountyFast.csv')
 #put in ffr per capita AND ffr
 
 # CONVERSION OF INPUTS
 new_X = []
 for ffrx,ffrpcx,statesx in zip(ffr,ffrpc,states):
     new_X.append([np.float(ffrx),np.float(ffrpcx),(statesx)])
-X = np.array(np.reshape(new_X,(-1,1)))
-print(X.shape)
+X = np.array(new_X)
 
 # CONVERSION OF OUTPUTs
 new_Y = []
@@ -65,6 +89,26 @@ for y in Y:
     else:
         new_Y.append([np.float(1),np.float(0)])
 Y = np.array(new_Y)
+
+###########################################################
+#################Load in Testing Data######################
+###########################################################
+# CONVERSION OF INPUTS
+T_new_X = []
+for T_ffrx,T_ffrpcx,T_statesx in zip(T_ffr,T_ffrpc,T_states):
+    T_new_X.append([np.float(T_ffrx),np.float(T_ffrpcx),(T_statesx)])
+T_X = np.array(T_new_X)
+print(T_X)
+
+# CONVERSION OF OUTPUTs
+T_new_Y = []
+for T_y in T_Y:
+    if T_y == 'R':
+        T_new_Y.append([np.float(0),np.float(1)])
+    else:
+        T_new_Y.append([np.float(1),np.float(0)])
+T_Y = np.array(T_new_Y)
+print(T_Y)
 
 # tf Graph input
 pX = tf.placeholder("float", [None, INPUT_SIZE])
@@ -118,9 +162,11 @@ with tf.Session() as sess:
     # Training cycle
     for epoch in range(60000):
         avg_cost = 0.
+        shuffler = list(range(COUNTIES))
         for i in range(0,COUNTIES,BATCH_SIZE): #Runs through 0-COUNTIES with BATCH_SIZE step
-            batch_x = X[i:i + BATCH_SIZE]
-            batch_Y = Y[i:i + BATCH_SIZE]
+            shuffle(shuffler)
+            batch_x = X[shuffler[i:i + BATCH_SIZE]]
+            batch_Y = Y[shuffler[i:i + BATCH_SIZE]]
             # Run optimization op (backprop) and cost op (to get loss value)
             _, c = sess.run([train_op, loss_op], feed_dict={pX: X, pY: Y})
             # Compute average loss
@@ -130,12 +176,12 @@ with tf.Session() as sess:
             # Test model
             pred = tf.nn.softmax(logits)  # Apply softmax to logits
             correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(pY, 1))
+            #print(pred)
             # Calculate accuracy
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
-            print("Epoch:", '%04d' % (epoch), "Cost={:.5f}".format(avg_cost), "Accuracy={:.2%}".format(accuracy.eval({pX: X, pY: Y})))
+            print("Epoch:", '%04d' % (epoch), "Cost={:.5f}".format(avg_cost), "Accuracy={:.2%}".format(accuracy.eval({pX: T_X, pY: T_Y})))
 
 #NEXT STEPS
     # DO CSV STUFF WITH PANDAS
-    # BENCHMARK WITH GUESSING SOLELY BASED ON STATE
     # TRY WITH TESTING ERROR
     # GRAPH ERROR OVER TIME
