@@ -10,6 +10,8 @@ from pprint import pprint
 import json
 import tensorflow as tf
 from random import shuffle
+import matplotlib.pyplot as plt
+import matplotlib
 
 LEARNING_RATE = 0.001
 BATCH_SIZE = 260 
@@ -64,7 +66,6 @@ def load_data	(filepath):
 
                 T_output_list.append(data[counter][4]) #output_list = D/R
                 counter+=1
-                print(counter)
         return array(ffr),array(ffrpc),array(state),array(output_list), array(T_ffr),array(T_ffrpc),array(T_state),array(T_output_list) 
 
 ###########################################################
@@ -98,7 +99,6 @@ T_new_X = []
 for T_ffrx,T_ffrpcx,T_statesx in zip(T_ffr,T_ffrpc,T_states):
     T_new_X.append([np.float(T_ffrx),np.float(T_ffrpcx),(T_statesx)])
 T_X = np.array(T_new_X)
-print(T_X)
 
 # CONVERSION OF OUTPUTs
 T_new_Y = []
@@ -108,7 +108,6 @@ for T_y in T_Y:
     else:
         T_new_Y.append([np.float(1),np.float(0)])
 T_Y = np.array(T_new_Y)
-print(T_Y)
 
 # tf Graph input
 pX = tf.placeholder("float", [None, INPUT_SIZE])
@@ -157,6 +156,9 @@ with open('synapses1.txt', 'r') as weightsfile:
     syn1 = json.load(weightsfile)
 print('Synapses successfully loaded')"""
 
+acost = []
+acc = []
+
 with tf.Session() as sess:
     sess.run(init)
     # Training cycle
@@ -172,6 +174,7 @@ with tf.Session() as sess:
             # Compute average loss
             avg_cost += c/BATCH_SIZE
         # Display logs per epoch step
+        acost.append(avg_cost)
         if epoch % 10 == 0:
             # Test model
             pred = tf.nn.softmax(logits)  # Apply softmax to logits
@@ -179,8 +182,22 @@ with tf.Session() as sess:
             #print(pred)
             # Calculate accuracy
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
-            print("Epoch:", '%04d' % (epoch), "Cost={:.5f}".format(avg_cost), "Accuracy={:.2%}".format(accuracy.eval({pX: T_X, pY: T_Y})))
+            print("Epoch:", '%04d' % (epoch), "Cost={:.5f}".format(avg_cost), "Testing Accuracy={:.2%}".format(accuracy.eval({pX: T_X, pY: T_Y})))
+            
+            #Graphing Cost
+            iters = [j for j in range(len(acost))]
+            plt.scatter(iters,acost, np.pi * (1/2), 'blue', alpha=0.5)
+            plt.savefig('cost')
+            plt.clf()
 
+            #Graphing Accuracy
+            acc.append(accuracy.eval({pX: T_X, pY: T_Y}))
+            tens_iters = [j for j in range(len(acc))]
+            for i in range(len(tens_iters)):
+                tens_iters[i]*=10
+            #print(tens_iters*10)
+            plt.scatter(tens_iters, acc, np.pi * (1/2), 'blue', alpha=0.5)
+            plt.savefig('accuracy')
 #NEXT STEPS
     # DO CSV STUFF WITH PANDAS
     # TRY WITH TESTING ERROR
