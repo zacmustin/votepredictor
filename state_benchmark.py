@@ -41,8 +41,48 @@ def load_data(filepath):
 				counter+=1
 		return array(state),array(output_list) 
 
+
+def load_data	(filepath):
+    with open(filepath,'r') as csvfile:
+        data = []
+        state = []
+        output_list = []
+        state_dict = {}
+
+        T_state = []
+        T_output_list = []
+
+        counter = 0
+        state_counter = 0
+        for rows in csvfile:
+            row_data = rows.split(',')
+            row_data[4] = row_data[4][:1] #removes /n at end 
+            data.append(row_data)
+
+            #loads in training data
+            if counter < COUNTIES:
+                #Checks if state has been mapped to dict & maps if it hasn't
+                if data[counter][1] not in state_dict:
+                    state_dict.update({data[counter][1] : state_counter})
+                    state_counter+=1
+                state.append(float(state_dict[data[counter][1]]))
+
+                output_list.append(data[counter][4]) #output_list = D/R
+                counter+=1
+            #loads in testing data
+                #Checks if state has been mapped to dict & maps if it hasn't
+                if data[counter][1] not in state_dict:
+                    state_dict.update({data[counter][1] : state_counter})
+                    state_counter+=1
+                T_state.append(float(state_dict[data[counter][1]]))
+
+                T_output_list.append(data[counter][4]) #output_list = D/R
+                counter+=1
+                print(counter)
+        return array(state),array(output_list), ,array(T_state),array(T_output_list) 
+
 # input dataset
-states,Y = load_data('CountyFast.csv')
+states,Y, T_states, T_Y = load_data('CountyFast.csv')
 #put in ffr per capita AND ffr
 
 # CONVERSION OF INPUTS
@@ -59,6 +99,22 @@ for y in Y:
 	else:
 		new_Y.append([np.float(1),np.float(0)])
 Y = np.array(new_Y)
+
+
+# CONVERSION OF INPUTS
+T_new_X = []
+for T_statesx in T_states:
+	T_new_X.append([np.float(T_statesx)])
+T_X = np.array(T_new_X)
+
+# CONVERSION OF OUTPUTs
+T_new_Y = []
+for T_y in T_Y:
+	if T_y == 'R':
+		T_new_Y.append([np.float(0),np.float(1)])
+	else:
+		T_new_Y.append([np.float(1),np.float(0)])
+T_Y = np.array(T_new_Y)
 
 # tf Graph input
 pX = tf.placeholder("float", [None, INPUT_SIZE])
@@ -129,10 +185,8 @@ with tf.Session() as sess:
 			
 			# Calculate accuracy
 			accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float")) #cast returns percentage of trues/falses
-			print("Epoch:", '%04d' % (epoch), "Cost={:.9f}".format(avg_cost), "Accuracy={:.2%}".format(accuracy.eval({pX: X, pY: Y})))
+			print("Epoch:", '%04d' % (epoch), "Cost={:.9f}".format(avg_cost), "Testing Accuracy={:.2%}".format(accuracy.eval({pX: T_X, pY: T_Y})))
 
 #NEXT STEPS
 	# DO CSV STUFF WITH PANDAS
-	# BENCHMARK WITH GUESSING SOLELY BASED ON STATE
-	# TRY WITH TESTING ERROR
 	# GRAPH ERROR OVER TIME

@@ -1,12 +1,18 @@
 import csv
+from pprint import pprint
 
+access = []
 rester = []
+local = []
+health = []
 vote = []
+county_info = []
 final_list = []
 counter = 0
 
 with open('CountyVote.csv','r') as votes: #county and voter breakdown
 	f = csv.reader(votes, delimiter=',')
+	next(votes) #skips first line with column titles
 	for row in f:
 		if row[4]<row[5]:
 			vote.append(row[9].split(" ")[0] + "," + row[8] + ",R") #county, state,#D/R voting
@@ -16,13 +22,45 @@ with open('CountyVote.csv','r') as votes: #county and voter breakdown
 
 with open('CountyRest.csv','r') as rests: #county and fastfood breakdown
 	g = csv.reader(rests, delimiter=',')
+	next(rests)
 	for row_num in g: #go through all rows in rests
 		rester.append(row_num[2] + "," + row_num[1] + "," + row_num[4] + ',' + row_num[7]) #county,state,# of fastfood restaurants (2014)
 
-for voterow in vote:
-	for restrow in rester:
+with open('CountyAccess.csv','r') as accessor: #county and fastfood breakdown
+	g = csv.reader(accessor, delimiter=',')
+	next(accessor)
+	counttt = 0
+	for row_num in g: #go through all rows in rests
+		if row_num[12] == "":
+			access.append('0')
+		else:
+			access.append(row_num[12]) # % low income & access to store
+
+with open('CountyLocal.csv','r') as localler: #county and fastfood breakdown
+	h = csv.reader(localler, delimiter=',')
+	next(localler)
+	for row_num in h: #go through all rows in localler
+		if row_num[41] == "":
+			local.append('0') #51 empty data points
+		else:
+			local.append(row_num[41]) #num of vegetable farms (2012)
+
+with open('CountyHealth.csv','r') as healthy:
+	l = csv.reader(healthy, delimiter=',')
+	next(healthy)
+	for row_num in l: #go through all rows in localler
+		health.append(row_num[9])
+
+print(len(vote), len(access), len(rester), len(local), len(health))
+
+for restrow in rester:
+	count = 0
+	for localrow in local:
+		county_info.append(rester[count] + ',' + localrow + ',' + health[count] + ',' + access[count])
+		count+=1
+	for voterow in vote:
 		if voterow.split(",")[0] == restrow.split(",")[0] and voterow.split(",")[1] == restrow.split(",")[1]: #crosschecks county & state are found in both csvs
-			final_list.append(restrow + "," + voterow.split(",")[2] + '\n')#county,state,#FFR,#D/R voting
+			final_list.append(county_info[counter] + "," + voterow.split(",")[2] + '\n')#county,state,#FFR,FFRPC,#VEG,#REC,#D/R voting
 			print('Addition number ' + str(counter))
 			counter+=1
 
